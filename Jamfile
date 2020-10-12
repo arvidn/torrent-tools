@@ -1,0 +1,49 @@
+import modules ;
+import feature : feature ;
+import package ;
+
+use-project /torrent : libtorrent ;
+
+feature libtorrent-link : submodule system : propagated ;
+
+lib libtorrent : : <name>torrent-rasterbar <link>shared ;
+
+rule linking ( properties * )
+{
+	if <libtorrent-link>system in $(properties)
+	{
+		return <library>libtorrent ;
+	}
+	if <libtorrent-link>submodule in $(properties)
+	{
+	   return <library>/torrent//torrent ;
+	}
+}
+
+project torrent-tools
+	: requirements
+	<threading>multi
+	<conditional>@linking
+	: default-build
+	<link>static
+	<cxxstd>17
+	;
+
+exe torrent-new : new.cpp ;
+exe torrent-merge : merge.cpp ;
+exe torrent-add : add.cpp ;
+exe torrent-modify : modify.cpp ;
+exe torrent-print : print.cpp ;
+
+install stage : torrent-print torrent-modify torrent-merge torrent-new torrent-add : <location>. ;
+
+package.install install
+	: : torrent-print torrent-modify torrent-merge torrent-new torrent-add ;
+
+install stage_dependencies
+	: /torrent//torrent
+	: <location>dependencies
+	<install-dependencies>on
+	<install-type>SHARED_LIB
+	;
+
