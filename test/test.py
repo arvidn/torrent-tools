@@ -26,7 +26,7 @@ class TestNew(unittest.TestCase):
 		size_ = [16000, 32000, 300]
 
 		for i in range(len(test_files_)):
-			run(['dd', 'count=%d' % size_[i], 'if=/dev/random', 'of=%s' % test_files_[i]])
+			run(['dd', 'iflag=fullblock', 'bs=512', 'count=%d' % size_[i], 'if=/dev/random', 'of=%s' % test_files_[i]])
 
 	def test_single_file(self):
 		for f in test_files_:
@@ -55,7 +55,7 @@ class TestNew(unittest.TestCase):
 		sizes = []
 		for i in range(len(out)):
 			names.append(out[i].strip().split(' ')[-1])
-			sizes.append(int(out[i].strip().split(' ')[0]) / 512)
+			sizes.append(int(out[i].strip().split(' ')[0]) // 512)
 
 		self.assertEqual(names, test_files_)
 		self.assertEqual(sizes, size_)
