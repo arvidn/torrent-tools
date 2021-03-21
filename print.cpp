@@ -11,6 +11,7 @@ see LICENSE file.
 #include <cinttypes> // for PRId64 et.al.
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <string_view>
 #include <variant>
 #include <time.h>

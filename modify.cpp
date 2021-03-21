@@ -358,7 +358,7 @@ int main(int argc_, char const* argv_[]) try
 	if (!drop_trackers) {
 		for (auto const& tr : input.trackers()) {
 			int const tier = tr.tier;
-			if (trackers.size() <= tier) trackers.resize(tier + 1);
+			if (int(trackers.size()) <= tier) trackers.resize(tier + 1);
 			trackers[tier].emplace_back(tr.url);
 		}
 	}
