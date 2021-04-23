@@ -116,10 +116,10 @@ bool pick_color(element_t const t)
 			std::cout << "\x1b[36m";
 			return true;
 		case element_t::time_stamp:
-			std::cout << "\x1b[35m";
+			std::cout << "\x1b[36m";
 			return true;
 		case element_t::file_root:
-			std::cout << "\x1b[37m";
+			std::cout << "\x1b[32m";
 			return true;
 	}
 
