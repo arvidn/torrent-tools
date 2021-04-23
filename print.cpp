@@ -66,8 +66,8 @@ R"(FILE PRINT OPTIONS:
 --file-mtime             Print file modification time (if available)
 --tree                   Print file structure as a tree (default)
 --flat                   Print file structure as a flat list
---no-color               Disable color escape sequences in output
---color                  Force printing colors in output
+--no-colors              Disable color escape sequences in output
+--colors                 Force printing colors in output
 -H, --human-readable     Print file sizes with SI prefixed units
 
 PARSE OPTIONS:
@@ -97,6 +97,62 @@ bool print_file_mtime = false;
 bool print_tree = true;
 bool print_colors = true;
 bool print_human_readable = false;
+
+enum class element_t : std::uint8_t
+{
+	directory, attributes, time_stamp, file_root
+};
+
+bool pick_color(element_t const t)
+{
+	if (!print_colors) return false;
+
+	switch (t)
+	{
+		case element_t::directory:
+			std::cout << "\x1b[34m";
+			return true;
+		case element_t::attributes:
+			std::cout << "\x1b[36m";
+			return true;
+		case element_t::time_stamp:
+			std::cout << "\x1b[35m";
+			return true;
+		case element_t::file_root:
+			std::cout << "\x1b[37m";
+			return true;
+	}
+
+	return false;
+}
+
+bool pick_file_color(lt::file_flags_t const flags)
+{
+	if (!print_colors) return false;
+
+	if (flags & lt::file_storage::flag_symlink) {
+		std::cout << "\x1b[35m";
+		return true;
+	}
+
+	if (flags & lt::file_storage::flag_executable) {
+		std::cout << "\x1b[31m";
+		return true;
+	}
+
+	if (flags & lt::file_storage::flag_hidden) {
+		std::cout << "\x1b[36m";
+		return true;
+	}
+
+	if (flags & lt::file_storage::flag_pad_file) {
+		std::cout << "\x1b[33m";
+		return true;
+	}
+
+	return false;
+}
+
 
 std::string human_readable(std::int64_t val)
 {
@@ -130,7 +186,7 @@ std::string print_timestamp(std::time_t const t)
 	return str.str();
 }
 
-void print_file_attrs(lt::file_storage const& st, lt::file_index_t i)
+void print_file_attrs(lt::file_storage const& st, lt::file_index_t i, bool const v2)
 {
 	if (print_file_offsets) {
 		std::cout << std::setw(11) << st.file_offset(i) << " ";
@@ -145,6 +201,7 @@ void print_file_attrs(lt::file_storage const& st, lt::file_index_t i)
 	}
 
 	if (print_file_attributes) {
+		bool const terminate_color = pick_color(element_t::attributes);
 		auto const flags = st.file_flags(i);
 		std::cout << " "
 			<< ((flags & lt::file_storage::flag_pad_file)?'p':'-')
@@ -152,6 +209,7 @@ void print_file_attrs(lt::file_storage const& st, lt::file_index_t i)
 			<< ((flags & lt::file_storage::flag_hidden)?'h':'-')
 			<< ((flags & lt::file_storage::flag_symlink)?'l':'-')
 			<< " ";
+		if (terminate_color) std::cout << "\x1b[39m";
 	}
 
 	if (print_file_piece_range) {
@@ -167,12 +225,25 @@ void print_file_attrs(lt::file_storage const& st, lt::file_index_t i)
 			std::cout << "                    ";
 		}
 		else {
+			bool const terminate_color = pick_color(element_t::time_stamp);
 			std::cout << print_timestamp(st.mtime(i)) << " ";
+			if (terminate_color) std::cout << "\x1b[39m";
 		}
 	}
 
-	if (print_file_roots && !st.root(i).is_all_zeros())
-		std::cout << st.root(i) << " ";
+	if (print_file_roots && v2)
+	{
+		if (st.root(i).is_all_zeros())
+		{
+			std::cout << "                                                                 ";
+		}
+		else
+		{
+			bool const terminate_color = pick_color(element_t::file_root);
+			std::cout << st.root(i) << " ";
+			if (terminate_color) std::cout << "\x1b[39m";
+		}
+	}
 }
 
 void print_blank_attrs(bool const v2)
@@ -198,39 +269,9 @@ void print_blank_attrs(bool const v2)
 	}
 
 	if (print_file_roots && v2)
+	{
 		std::cout << "                                                                 ";
-}
-
-bool pick_color(lt::file_flags_t const flags, bool const directory = false)
-{
-	if (!print_colors) return false;
-
-	if (flags & lt::file_storage::flag_symlink) {
-		std::cout << "\x1b[35m";
-		return true;
 	}
-
-	if (directory) {
-		std::cout << "\x1b[34m";
-		return true;
-	}
-
-	if (flags & lt::file_storage::flag_executable) {
-		std::cout << "\x1b[31m";
-		return true;
-	}
-
-	if (flags & lt::file_storage::flag_hidden) {
-		std::cout << "\x1b[36m";
-		return true;
-	}
-
-	if (flags & lt::file_storage::flag_pad_file) {
-		std::cout << "\x1b[33m";
-		return true;
-	}
-
-	return false;
 }
 
 void print_file_list(lt::file_storage const& st)
@@ -240,9 +281,9 @@ void print_file_list(lt::file_storage const& st)
 		auto const flags = st.file_flags(i);
 		if ((flags & lt::file_storage::flag_pad_file) && !show_pad) continue;
 
-		print_file_attrs(st, i);
+		print_file_attrs(st, i, st.v2());
 
-		bool const terminate_color = pick_color(flags);
+		bool const terminate_color = pick_file_color(flags);
 		std::cout << st.file_path(i);
 		if (terminate_color) std::cout << "\x1b[39m";
 
@@ -302,7 +343,7 @@ void print_tree_impl(lt::file_storage const& st, std::vector<bool>& levels
 	for (auto const& [name, e] : tree) {
 
 		if (e.e.index() == 1) {
-			print_file_attrs(st, std::get<1>(e.e));
+			print_file_attrs(st, std::get<1>(e.e), st.v2());
 		}
 		else {
 			// print the indentation
@@ -329,7 +370,7 @@ void print_tree_impl(lt::file_storage const& st, std::vector<bool>& levels
 			auto const i = std::get<1>(e.e);
 			auto const flags = st.file_flags(i);
 
-			bool const terminate_color = pick_color(flags);
+			bool const terminate_color = pick_file_color(flags);
 			std::cout << name;
 			if (terminate_color) std::cout << "\x1b[39m";
 
@@ -338,7 +379,7 @@ void print_tree_impl(lt::file_storage const& st, std::vector<bool>& levels
 			}
 		}
 		else {
-			bool const terminate_color = pick_color({}, true);
+			bool const terminate_color = pick_color(element_t::directory);
 			std::cout << name;
 			if (terminate_color) std::cout << "\x1b[39m";
 		}

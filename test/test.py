@@ -199,9 +199,14 @@ class TestPrint(unittest.TestCase):
 	def test_tree(self):
 		run(['./torrent-new', '-o', 'test.torrent', 'bin'])
 
-		for opt in ['--file-mtime', '--no-file-size', '--file-piece-range', '--file-roots', '--human-readable', '--file-offsets', '--no-file-attributes']:
-			out = run(['./torrent-print', '--files', '--tree', '--no-colors'] + [opt] + ['test.torrent'])
-			self.validate_tree(out)
+		opts = ['--file-mtime', '--no-file-size', '--file-piece-range', '--file-roots', '--human-readable', '--file-offsets', '--no-file-attributes']
+
+		for l in range(0, len(opts)):
+			for opt in itertools.combinations(opts, l):
+				opt = list(opt)
+				print(opt)
+				out = run(['./torrent-print', '--files', '--tree', '--no-colors'] + opt + ['test.torrent'])
+				self.validate_tree(out)
 
 	# makes sure the lines are correctly aligned
 	def validate_tree(self, lines):
