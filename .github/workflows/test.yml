@@ -1,4 +1,4 @@
-name: Linux
+name: Tests
 
 on:
    push:
@@ -9,18 +9,27 @@ jobs:
 
    build:
       name: build
-      runs-on: ubuntu-20.04
+      runs-on: ${{ matrix.os }}
+
+      strategy:
+        matrix:
+          os: [ubuntu-latest, macos-latest ]
 
       steps:
       - name: checkout
         uses: actions/checkout@v2.3.3
         with:
            submodules: recursive
-      - name: update package lists
+      - name: update package lists (Linux)
         continue-on-error: true
+        if: runner.os == 'Linux'
         run: sudo apt update
-      - name: install boost
+      - name: dependencies (Linux)
+        if: runner.os == 'Linux'
         run: sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+      - name: dependencies (MacOS)
+        if: runner.os == 'macOS'
+        run: brew install boost-build boost
       - name: build tools
         run: b2 link=static stage
       - name: test
