@@ -26,7 +26,7 @@ class TestNew(unittest.TestCase):
 		size_ = [16000, 32000, 300]
 
 		for i in range(len(test_files_)):
-			run(['dd', 'iflag=fullblock', 'bs=512', 'count=%d' % size_[i], 'if=/dev/random', 'of=%s' % test_files_[i]])
+			run(['dd', 'bs=512', f'count={size_[i]}', 'if=/dev/random', f'of={test_files_[i]}'])
 
 	def test_single_file(self):
 		for f in test_files_:
