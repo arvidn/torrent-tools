@@ -311,6 +311,7 @@ int main(int argc_, char const* argv_[]) try
 #endif
 		}
 
+		auto const idx = fs.end_file();
 		fs.add_file(path, file_size, file_flags, mtime, symlink_path, root_hash);
 		file_info.push_back(file_metadata{
 			lt::index_range<lt::piece_index_t>{
@@ -318,7 +319,7 @@ int main(int argc_, char const* argv_[]) try
 				, lt::piece_index_t((file_offset + input_fs.file_size(f) + piece_size - 1) / piece_size)}
 			, input.piece_layer(f)
 			, root_hash
-			, --fs.end_file()
+			, idx
 			});
 	}
 
@@ -409,6 +410,8 @@ int main(int argc_, char const* argv_[]) try
 
 	if (input.info_hashes().has_v2()) {
 		for (auto const& info : file_info) {
+			if (fs.pad_file_at(info.idx))
+				continue;
 			lt::piece_index_t::diff_type p{0};
 			for (int h = 0; h < int(info.piece_layer.size()); h += int(lt::sha256_hash::size())) {
 				t.set_hash2(info.idx, p++, lt::sha256_hash(info.piece_layer.data() + h));
