@@ -287,6 +287,7 @@ int main(int argc_, char const* argv_[]) try
 
 	lt::settings_pack sett;
 	sett.set_int(lt::settings_pack::hashing_threads, num_threads);
+	sett.set_int(lt::settings_pack::file_pool_size, 2);
 	auto const num = t.num_pieces();
 	lt::set_piece_hashes(t, branch_path(full_path), sett
 		, [num, quiet] (lt::piece_index_t const p) {
