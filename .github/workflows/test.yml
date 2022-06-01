@@ -29,7 +29,9 @@ jobs:
         run: sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
       - name: dependencies (MacOS)
         if: runner.os == 'macOS'
-        run: brew install boost-build boost
+        run: |
+          brew install boost-build boost
+          echo "using darwin ;" >> ~/user-config.jam
       - name: build tools
         run: b2 link=static stage
       - name: test
